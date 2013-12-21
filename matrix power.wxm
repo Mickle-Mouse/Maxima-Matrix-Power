@@ -1,0 +1,79 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 13.04.2 ] */
+
+/* [wxMaxima: input   start ] */
+m1: matrix([1, 1, 0, 0],[0, 1, 1, 0],[0,0,1,-1/8],[0,0,1/2,1/2]);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+/* Michael Valenzuela's original symbolic matrix power */
+/* This very non-robust code is effectively released   */
+/* Under the "New BSD License"                         */
+/* This is compatable with GPL, but is not copy-left   */
+/* I just don't want to be held accountable for this   */
+/* code                                                */
+
+/* Version 1.0 --- non robust, not very effecient version */
+matrix_power(A, t):=block([A_, A_list, B_, B_list, eqs, eigvals, i, j, k, numeq, tt, solvedeq, offset],
+/* Initialize Variables */
+/* This is the value we set t to this value */
+offset: 1,
+/* The number of equations */
+numeq: length(A),
+/* The list of relevant variables */
+eqs: makelist(0,i,1,numeq),
+A_list: makelist( A_^^(i+offset)=tt,i,0,numeq-1),
+B_list: makelist( B_[i],i,1,numeq),
+
+
+/* Exact Eigenvalues and calculate powers of A */
+eigvals:rat(radcan(fullratsimp(eivals(A)))),
+for i:1 thru numeq do block([],
+  A_list[i]: at( A_list[i], tt=A^^(i+offset-1))
+),
+A_list : reverse(A_list),
+
+
+/* Setup the first equation */
+k:1,
+eqs[1]: 0,
+for i:1 thru length(eigvals[1]) do block([],
+  for j:1 thru eigvals[2][i] do block ([],
+    eqs[1]: eqs[1] + B_list[k] * t^(j-1) * eigvals[1][i]^t,
+    k:k+1
+  )
+),
+eqs[1]: A_^^t = eqs[1],
+
+
+/* Generate all the necessary equations */
+for i:2 thru numeq do block([],
+  eqs[i]: at(eqs[i-1], [t=1+tt]),
+  eqs[i]: at(eqs[i], [tt=t])
+),
+
+
+/* Set t=offset and solve the equations */
+solvedeq: linsolve( at(eqs, t=offset), B_list ),
+
+
+/* Substitute the symbolic A_^k with the calculation */
+solvedeq: factorsum(radcan(at( solvedeq, A_list))),
+
+
+/* Substitute the resulting equations into eq0 */
+return( rhs(at(eqs[1], solvedeq ) ) )
+);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+sympower(t):= (''(matrix_power(m1, t)));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+is( m1^^15 = sympower(15));
+is( m1^^-1 = sympower(-1));
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$
