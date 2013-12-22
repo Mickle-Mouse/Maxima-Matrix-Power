@@ -3,6 +3,8 @@
 
 /* [wxMaxima: input   start ] */
 m1: matrix([1, 1, 0, 0],[0, 1, 1, 0],[0,0,1,-1/8],[0,0,1/2,1/2]);
+m2: matrix([1, 0, 1],[0, 1, 0],[0,0,0]);
+shift_matrix: matrix([0, 1, 0, 0],[0, 0, 1, 0],[0,0,0,1],[0,0,0,0]);
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
@@ -13,17 +15,29 @@ m1: matrix([1, 1, 0, 0],[0, 1, 1, 0],[0,0,1,-1/8],[0,0,1/2,1/2]);
 /* I just don't want to be held accountable for this   */
 /* code                                                */
 
+
 /* Version 1.0 --- non robust, not very effecient version */
-matrix_power(A, t):=block([A_, A_list, B_, B_list, eqs, eigvals, i, j, k, numeq, tt, solvedeq, offset],
+matrix_power(A, t):=block([A_, A_list, B_, B_list, eqs, eigvals, I_, i, j, k, numeq, tt, solvedeq, offset],
+/* A should be a matrix          */
+/* t should be a scalar variable */
+
 /* Initialize Variables */
-/* This is the value we set t to this value */
-offset: 1,
+declare(A_, nonscalar),
+declare(I_, nonscalar),
+/* This is the value we set t to this value. Should be >=0 */
+offset: 0,
 /* The number of equations */
 numeq: length(A),
 /* The list of relevant variables */
 eqs: makelist(0,i,1,numeq),
 A_list: makelist( A_^^(i+offset)=tt,i,0,numeq-1),
 B_list: makelist( B_[i],i,1,numeq),
+
+
+/* Correct for A_^^0 being 1, it should be identity */
+if (offset=0) then
+  A_list[1]: I_=tt else
+  0,
 
 
 /* Exact Eigenvalues and calculate powers of A */
@@ -39,7 +53,9 @@ k:1,
 eqs[1]: 0,
 for i:1 thru length(eigvals[1]) do block([],
   for j:1 thru eigvals[2][i] do block ([],
-    eqs[1]: eqs[1] + B_list[k] * t^(j-1) * eigvals[1][i]^t,
+    if( eigvals[1][i] # 0 ) then 
+      eqs[1]: eqs[1] + B_list[k] * t^(j-1) * eigvals[1][i]^t else
+      eqs[1]: eqs[1] + B_list[k] * kron_delta(j-1,t),
     k:k+1
   )
 ),
@@ -53,12 +69,18 @@ for i:2 thru numeq do block([],
 ),
 
 
+/* Lets take care of the case where A_^^0 turns into 1 */
+if (offset = 0) then
+  eqs[1]: at(eqs[1], A_^^t=I_) else
+  0,
+
+
 /* Set t=offset and solve the equations */
-solvedeq: linsolve( at(eqs, t=offset), B_list ),
+solvedeq: linsolve( at(eqs, t=offset), B_list ) ,
 
 
 /* Substitute the symbolic A_^k with the calculation */
-solvedeq: factorsum(radcan(at( solvedeq, A_list))),
+solvedeq: radcan( at(solvedeq, A_list)),
 
 
 /* Substitute the resulting equations into eq0 */
@@ -67,12 +89,27 @@ return( rhs(at(eqs[1], solvedeq ) ) )
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-sympower(t):= (''(matrix_power(m1, t)));
+m1power(t):= (''(matrix_power(m1, t)));
+m2power(t):= (''(matrix_power(m2, t)));
+shift_matrixpower(t):= (''(matrix_power(shift_matrix, t)));
 /* [wxMaxima: input   end   ] */
 
 /* [wxMaxima: input   start ] */
-is( m1^^15 = sympower(15));
-is( m1^^-1 = sympower(-1));
+for i:-10 thru 20 do
+    display(is( m1^^i = m1power(i)));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+for i:0 thru 20 do
+    display(is( m2^^i = m2power(i)));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+is( shift_matrix^^0 = shift_matrixpower(0));
+is( shift_matrix^^1 = shift_matrixpower(1));
+is( shift_matrix^^2 = shift_matrixpower(2));
+is( shift_matrix^^3 = shift_matrixpower(3));
+is( shift_matrix^^4 = shift_matrixpower(4));
 /* [wxMaxima: input   end   ] */
 
 /* Maxima can't load/batch files which end with a comment! */
